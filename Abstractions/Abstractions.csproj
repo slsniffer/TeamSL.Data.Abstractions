@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AssemblyName>TeamSL.Data.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>TeamSL.Data.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>TeamSL.Data.Abstractions</Title>
+    <Copyright>Vitali Intsevich</Copyright>
+    <RepositoryUrl>https://github.com/slsniffer/TeamSL.Data.Abstractions</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/slsniffer/TeamSL.Data.Abstractions</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <AssemblyVersion></AssemblyVersion>
+    <FileVersion></FileVersion>
+    <PackageVersion>1.0.1</PackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Abstractions.csproj.DotSettings" />
+  </ItemGroup>
+
+</Project>
