@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <AssemblyName>TeamSL.Data.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>TeamSL.Data.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>TeamSL.Data.Abstractions.EntityFrameworkCore</Title>
+    <Copyright>Vitali Intsevich</Copyright>
+    <PackageProjectUrl>https://github.com/slsniffer/TeamSL.Data.Abstractions</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/slsniffer/TeamSL.Data.Abstractions</RepositoryUrl>
+    <PackageVersion>1.0.1</PackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Abstractions\Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>
