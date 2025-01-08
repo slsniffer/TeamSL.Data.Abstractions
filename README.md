@@ -1,5 +1,5 @@
 # TeamSL.Data.Abstractions
-Simple and light-weight library based on Repository pattern to implement basic CRUD operations.
+Simple and light-weight library based on Repository and Specification patterns to implement basic CRUD operations and make you repositories more generic.
 
 Main features:
 - Load single entity
