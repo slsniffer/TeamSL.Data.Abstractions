@@ -30,6 +30,12 @@ jobs:
 
     - name: Pack NuGet package
       run: dotnet pack --configuration Release --no-build -o ./nupkgs /p:Version=${{ env.VERSION }}
+      
+    - name: Check if package version already exists
+      run: |
+      if curl -sSf "https://api.nuget.org/v3-flatcontainer/teamsl.data.abstractions/${{ env.VERSION }}/teamsl.data.abstractions.${{ env.VERSION }}.nupkg"; then
+        echo "Version ${{ env.VERSION }} already exists on NuGet. Aborting."; exit 1;
+      fi
 
     - name: Publish to NuGet
       run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
