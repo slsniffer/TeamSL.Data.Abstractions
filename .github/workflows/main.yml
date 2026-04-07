@@ -1,41 +1,64 @@
-name: Publish NuGet Package
+name: Publish NuGet Packages
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
 
 jobs:
-  build-and-publish:
+  publish:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.x'
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          echo "VERSION=$TAG" >> $GITHUB_OUTPUT
+          echo "Publishing version: $TAG"
 
-    - name: Restore dependencies
-      run: dotnet restore
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
 
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
+      - name: Restore
+        run: dotnet restore
 
-    - name: Get version from tag
-      id: vars
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
 
-    - name: Pack NuGet package
-      run: dotnet pack --configuration Release --no-build -o ./nupkgs /p:Version=${{ env.VERSION }}
-      
-    - name: Check if package version already exists
-      run: |
-      if curl -sSf "https://api.nuget.org/v3-flatcontainer/teamsl.data.abstractions/${{ env.VERSION }}/teamsl.data.abstractions.${{ env.VERSION }}.nupkg"; then
-        echo "Version ${{ env.VERSION }} already exists on NuGet. Aborting."; exit 1;
-      fi
+      - name: Pack TeamSL.Data.Abstractions
+        run: |
+          dotnet pack Abstractions/Abstractions.csproj \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion=${{ steps.version.outputs.VERSION }} \
+            --output ./artifacts
 
-    - name: Publish to NuGet
-      run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+      - name: Pack TeamSL.Data.Abstractions.EntityFrameworkCore
+        run: |
+          dotnet pack Abstractions.EntityFrameworkCore/Abstractions.EntityFrameworkCore.csproj \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion=${{ steps.version.outputs.VERSION }} \
+            --output ./artifacts
+
+      - name: Push to NuGet
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: v${{ steps.version.outputs.VERSION }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

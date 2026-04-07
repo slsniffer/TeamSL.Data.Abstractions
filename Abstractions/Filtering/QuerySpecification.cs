@@ -1,14 +1,16 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using TeamSL.Data.Abstractions.Entity;
 
 namespace TeamSL.Data.Abstractions.Filtering
 {
-    public abstract class QuerySpecification<T> : IQuerySpecification<T>
+    public abstract class QuerySpecification<TRecord> : IQuerySpecification<TRecord>
+        where TRecord : IRecord
     {
-        protected abstract Expression<Func<T, bool>> MatchingCriteria();
+        protected abstract Expression<Func<TRecord, bool>> MatchingCriteria();
 
-        public virtual IQueryable<T> Satisfy(IQueryable<T> candidates)
+        public virtual IQueryable<TRecord> Satisfy(IQueryable<TRecord> candidates)
         {
             if (MatchingCriteria() != null)
             {
