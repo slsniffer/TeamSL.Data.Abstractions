@@ -9,25 +9,30 @@ using TeamSL.Data.Abstractions.Ordering;
 
 namespace TeamSL.Data.Abstractions.Repository
 {
-    public interface IReadRepository<TRecord> where TRecord : Record
+    public interface IReadRepository<TRecord> : IReadRepository<TRecord, long>
+    where TRecord : IRecord
     {
-        Task<TRecord> Load(long id, CancellationToken cancellationToken = default);
-        Task<TRecord> Load(long id, IFetchStrategy<TRecord> fetchStrategy, CancellationToken cancellationToken = default);
-        Task<TRecord> Find(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken = default);
-        Task<TRecord> Find(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, CancellationToken cancellationToken = default);
+    }
+
+    public interface IReadRepository<TRecord, TKey> where TRecord : IRecord<TKey>
+    {
+        Task<TRecord> Load(TKey id, CancellationToken cancellationToken = default);
+        Task<TRecord> Load(TKey id, IFetchStrategy<TRecord, TKey> fetchStrategy, CancellationToken cancellationToken = default);
+        Task<TRecord> Find(IQuerySpecification<TRecord, TKey> specification, CancellationToken cancellationToken = default);
+        Task<TRecord> Find(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy, CancellationToken cancellationToken = default);
         Task<int> Count(CancellationToken cancellationToken = default);
-        Task<int> Count(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken = default);
+        Task<int> Count(IQuerySpecification<TRecord, TKey> specification, CancellationToken cancellationToken = default);
         Task<IList<TRecord>> FindAll(CancellationToken cancellationToken = default);
         Task<IList<TRecord>> FindAll(Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
         Task<IList<TRecord>> FindAll(Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default);
-        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken = default);
-        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord> specification, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
-        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord> specification, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default);
-        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, CancellationToken cancellationToken = default);
-        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
-        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default);
-        Task<IList<TRecord>> FindAll(IFetchStrategy<TRecord> fetchStrategy, CancellationToken cancellationToken = default);
-        Task<IList<TRecord>> FindAll(IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default);
-        Task<IList<TRecord>> FindAll(IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
+        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord, TKey> specification, CancellationToken cancellationToken = default);
+        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord, TKey> specification, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
+        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord, TKey> specification, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default);
+        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy, CancellationToken cancellationToken = default);
+        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
+        Task<IList<TRecord>> FindAll(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default);
+        Task<IList<TRecord>> FindAll(IFetchStrategy<TRecord, TKey> fetchStrategy, CancellationToken cancellationToken = default);
+        Task<IList<TRecord>> FindAll(IFetchStrategy<TRecord, TKey> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
+        Task<IList<TRecord>> FindAll(IFetchStrategy<TRecord, TKey> fetchStrategy, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default);
     }
 }

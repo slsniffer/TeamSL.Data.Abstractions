@@ -5,31 +5,32 @@ using TeamSL.Data.Abstractions.Filtering;
 
 namespace TeamSL.Data.Abstractions.Repository
 {
-    public abstract class RepositoryImpl<TRecord> where TRecord : Record
+    public abstract class RepositoryImpl<TRecord> : RepositoryImpl<TRecord, long>
+        where TRecord : IRecord
+    {
+    }
+
+    public abstract class RepositoryImpl<TRecord, TKey> where TRecord : IRecord<TKey>
     {
         protected abstract IQueryable<TRecord> Table { get; }
 
-        protected IQueryable<TRecord> Load(long id, IFetchStrategy<TRecord> fetchStrategy)
+        protected IQueryable<TRecord> Load(TKey id, IFetchStrategy<TRecord, TKey> fetchStrategy)
         {
             Checks.NotNull(fetchStrategy, nameof(fetchStrategy));
-
-            var queryable = Table.Where(x => x.Id == id);
-
+            var queryable = Table.Where(x => x.Id!.Equals(id));
             return queryable.Fetch(fetchStrategy);
         }
 
-        protected IQueryable<TRecord> Find(IQuerySpecification<TRecord> specification)
+        protected IQueryable<TRecord> Find(IQuerySpecification<TRecord, TKey> specification)
         {
             Checks.NotNull(specification, nameof(specification));
-
             return Table.FilterBy(specification);
         }
 
-        protected IQueryable<TRecord> Find(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy)
+        protected IQueryable<TRecord> Find(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy)
         {
             Checks.NotNull(specification, nameof(specification));
             Checks.NotNull(fetchStrategy, nameof(fetchStrategy));
-
             return Table.FilterBy(specification).Fetch(fetchStrategy);
         }
 
@@ -38,10 +39,9 @@ namespace TeamSL.Data.Abstractions.Repository
             return Table.Count();
         }
 
-        protected int Count(IQuerySpecification<TRecord> specification)
+        protected int Count(IQuerySpecification<TRecord, TKey> specification)
         {
             Checks.NotNull(specification, nameof(specification));
-
             return Table.FilterBy(specification).Count();
         }
 
@@ -50,25 +50,22 @@ namespace TeamSL.Data.Abstractions.Repository
             return Table;
         }
 
-        protected IQueryable<TRecord> FindAll(IQuerySpecification<TRecord> specification)
+        protected IQueryable<TRecord> FindAll(IQuerySpecification<TRecord, TKey> specification)
         {
             Checks.NotNull(specification, nameof(specification));
-
             return Table.FilterBy(specification);
         }
 
-        protected IQueryable<TRecord> FindAll(IFetchStrategy<TRecord> fetchStrategy)
+        protected IQueryable<TRecord> FindAll(IFetchStrategy<TRecord, TKey> fetchStrategy)
         {
             Checks.NotNull(fetchStrategy, nameof(fetchStrategy));
-
             return Table.Fetch(fetchStrategy);
         }
 
-        protected IQueryable<TRecord> FindAll(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy)
+        protected IQueryable<TRecord> FindAll(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy)
         {
             Checks.NotNull(specification, nameof(specification));
             Checks.NotNull(fetchStrategy, nameof(fetchStrategy));
-
             return Table.FilterBy(specification).Fetch(fetchStrategy);
         }
     }
