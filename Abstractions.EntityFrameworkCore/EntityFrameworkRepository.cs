@@ -9,10 +9,10 @@ using TeamSL.Data.Abstractions.Repository;
 namespace TeamSL.Data.Abstractions.EntityFrameworkCore;
 
 public sealed class EntityFrameworkRepository<TRecord>
-    : EntityFrameworkRepository<TRecord, long>
+    : EntityFrameworkRepository<TRecord, long>, IReadRepository<TRecord>, IRepository<TRecord>
     where TRecord : class, IRecord
 {
-    public EntityFrameworkRepository(IContextProvider contextProvider, ILogger<EntityFrameworkRepository<TRecord>> logger)
+    public EntityFrameworkRepository(IContextProvider contextProvider, ILogger<EntityFrameworkRepository<TRecord, long>> logger)
         : base(contextProvider, logger)
     {
     }
