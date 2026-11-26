@@ -33,9 +33,24 @@ Services you registered yourself beforehand (e.g. a custom `IContextProvider`) a
 `var order = await _orderRepository.Find(new ById<Order, Guid>(orderId), cancellationToken);` // non-long key
 
 #### Load entity by PublicId
-For entities implementing `IPublicRecord` / `IPublicRecord<TKey>` (an external Guid next to the internal Id):  
+A public record has an internal `Id` and a separate `PublicId` that is safe to expose. Every public record is also an `IRecord`, so `ById` works on it too.
+
+| Interface | Id | PublicId |
+|---|---|---|
+| `IPublicRecord` | `long` | `Guid` |
+| `IPublicRecord<TPublicKey>` | `long` | `TPublicKey` |
+| `IPublicRecord<TPublicKey, TInnerKey>` | `TInnerKey` | `TPublicKey` |
+
+```csharp
+public class User : IPublicRecord { ... }                       // long Id, Guid PublicId
+public class Article : IPublicRecord<string> { ... }            // long Id, string PublicId (slug)
+public class Order : IPublicRecord<Guid, Guid> { ... }          // Guid Id, Guid PublicId
+```
+
+`ByPublicId` has the same three forms:  
 `var user = await _userRepository.Find(new ByPublicId<User>(publicId), cancellationToken);`  
-`var order = await _orderRepository.Find(new ByPublicId<Order, Guid>(publicId), cancellationToken);` // non-long Id
+`var article = await _articleRepository.Find(new ByPublicId<Article, string>(slug), cancellationToken);`  
+`var order = await _orderRepository.Find(new ByPublicId<Order, Guid, Guid>(publicId), cancellationToken);`
 
 #### Find entity
 `var user = await _userRepository.Find(new GetUserByEmailSpecification(userEmail), cancellationToken);`

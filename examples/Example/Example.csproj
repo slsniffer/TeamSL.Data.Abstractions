@@ -15,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Abstractions.EntityFrameworkCore\Abstractions.EntityFrameworkCore.csproj" />
-    <ProjectReference Include="..\Abstractions\Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\Abstractions.EntityFrameworkCore\Abstractions.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\Abstractions\Abstractions.csproj" />
   </ItemGroup>
 
 </Project>
