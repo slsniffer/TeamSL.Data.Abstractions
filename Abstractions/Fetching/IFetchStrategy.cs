@@ -1,14 +1,8 @@
 ﻿using System.Linq;
-using TeamSL.Data.Abstractions.Entity;
 
 namespace TeamSL.Data.Abstractions.Fetching
 {
-    public interface IFetchStrategy<TRecord> : IFetchStrategy<TRecord, long>
-        where TRecord : IRecord
-    {
-    }
-
-    public interface IFetchStrategy<TRecord, TKey> where TRecord : IRecord<TKey>
+    public interface IFetchStrategy<TRecord>
     {
         IQueryable<TRecord> Apply(IQueryable<TRecord> queryable);
     }
