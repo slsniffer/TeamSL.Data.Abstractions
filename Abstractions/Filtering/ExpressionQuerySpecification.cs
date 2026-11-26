@@ -1,16 +1,15 @@
 using System;
 using System.Linq.Expressions;
-using TeamSL.Data.Abstractions.Entity;
 
 namespace TeamSL.Data.Abstractions.Filtering
 {
-    public abstract class ExpressionQuerySpecification<TRecord, TKey> : QuerySpecification<TRecord>
-        where TRecord : IRecord
+    public abstract class ExpressionQuerySpecification<TRecord> : QuerySpecification<TRecord>
     {
         private readonly Expression<Func<TRecord, bool>> _expression;
 
         protected ExpressionQuerySpecification(Expression<Func<TRecord, bool>> expression)
         {
+            Checks.NotNull(expression, nameof(expression));
             _expression = expression;
         }
 

@@ -31,15 +31,20 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      # Version goes on the build: assembly and file versions are compiled into the DLLs,
+      # so a --no-build pack can only set the package version.
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build
 
       - name: Pack TeamSL.Data.Abstractions
         run: |
           dotnet pack Abstractions/Abstractions.csproj \
             --configuration Release \
             --no-build \
-            -p:PackageVersion=${{ steps.version.outputs.VERSION }} \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
             --output ./artifacts
 
       - name: Pack TeamSL.Data.Abstractions.EntityFrameworkCore
@@ -47,7 +52,7 @@ jobs:
           dotnet pack Abstractions.EntityFrameworkCore/Abstractions.EntityFrameworkCore.csproj \
             --configuration Release \
             --no-build \
-            -p:PackageVersion=${{ steps.version.outputs.VERSION }} \
+            -p:Version=${{ steps.version.outputs.VERSION }} \
             --output ./artifacts
 
       - name: Push to NuGet

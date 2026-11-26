@@ -1,6 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TeamSL.Data.Abstractions.Entity;
 using TeamSL.Data.Abstractions.Fetching;
 using TeamSL.Data.Abstractions.Filtering;
 using TeamSL.Data.Abstractions.Ordering;
@@ -8,182 +7,155 @@ using TeamSL.Data.Abstractions.Repository;
 
 namespace TeamSL.Data.Abstractions.EntityFrameworkCore;
 
-public sealed class EntityFrameworkRepository<TRecord>
-    : EntityFrameworkRepository<TRecord, long>, IReadRepository<TRecord>, IRepository<TRecord>
-    where TRecord : class, IRecord
+public class EntityFrameworkRepository<TRecord> : RepositoryImpl<TRecord>, IReadRepository<TRecord>
+    where TRecord : class
 {
-    public EntityFrameworkRepository(IContextProvider contextProvider, ILogger<EntityFrameworkRepository<TRecord, long>> logger)
-        : base(contextProvider, logger)
-    {
-    }
-}
+    private static readonly string Entity = typeof(TRecord).Name;
 
-public class EntityFrameworkRepository<TRecord, TKey> : RepositoryImpl<TRecord, TKey>, IReadRepository<TRecord, TKey>, IRepository<TRecord, TKey>
-    where TRecord : class, IRecord<TKey>
-{
     private readonly DbContext _context;
-    private readonly ILogger<EntityFrameworkRepository<TRecord, TKey>> _logger;
+    private readonly ILogger<EntityFrameworkRepository<TRecord>> _logger;
 
-    public EntityFrameworkRepository(IContextProvider contextProvider, ILogger<EntityFrameworkRepository<TRecord, TKey>> logger)
+    public EntityFrameworkRepository(IContextProvider contextProvider, ILogger<EntityFrameworkRepository<TRecord>> logger)
     {
+        ArgumentNullException.ThrowIfNull(contextProvider);
+        ArgumentNullException.ThrowIfNull(logger);
         _context = contextProvider.Context();
         _logger = logger;
     }
 
-    protected override IQueryable<TRecord> Table => _context.Set<TRecord>();
+    /// <summary>
+    /// Queries always track the returned records, even if the DbContext is configured as no-tracking,
+    /// so loading a record, changing it and calling <see cref="IUnitOfWork.SaveChanges"/> persists the change.
+    /// </summary>
+    protected override IQueryable<TRecord> Table => _context.Set<TRecord>().AsTracking();
 
-    async Task<TRecord> IReadRepository<TRecord, TKey>.Load(TKey id, CancellationToken cancellationToken = default)
+    // ---- IReadRepository ----
+
+    async Task<TRecord?> IReadRepository<TRecord>.Find(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Loading {0}.Id: {1}", typeof(TRecord).Name, id);
-
-        return await Load(id).SingleOrDefaultAsync(cancellationToken);
-    }
-
-    async Task<TRecord> IReadRepository<TRecord, TKey>.Load(TKey id, IFetchStrategy<TRecord, TKey> fetchStrategy, CancellationToken cancellationToken = default)
-    {
-        _logger.LogDebug("Loading {0}.Id: {1} with fetching: {2}", typeof(TRecord).Name, id, fetchStrategy.GetType().Name);
-
-        return await Load(id, fetchStrategy).SingleOrDefaultAsync(cancellationToken);
-    }
-
-    async Task<TRecord> IReadRepository<TRecord, TKey>.Find(IQuerySpecification<TRecord, TKey> specification, CancellationToken cancellationToken = default)
-    {
-        _logger.LogDebug("Find {0} by specification: {1}", typeof(TRecord).Name, specification.GetType().Name);
+        _logger.LogDebug("Find {Entity} by specification: {Specification}", Entity, Name(specification));
 
         return await Find(specification).SingleOrDefaultAsync(cancellationToken);
     }
 
-    async Task<TRecord> IReadRepository<TRecord, TKey>.Find(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy, CancellationToken cancellationToken = default)
+    async Task<TRecord?> IReadRepository<TRecord>.Find(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find {0} by specification: {1} with fetching: {2}", typeof(TRecord).Name, specification.GetType().Name, fetchStrategy.GetType().Name);
+        _logger.LogDebug("Find {Entity} by specification: {Specification} with fetching: {FetchStrategy}", Entity, Name(specification), Name(fetchStrategy));
 
-        return await Find(specification, fetchStrategy).FirstOrDefaultAsync(cancellationToken);
+        return await Find(specification, fetchStrategy).SingleOrDefaultAsync(cancellationToken);
     }
 
-    async Task<int> IReadRepository<TRecord, TKey>.Count(CancellationToken cancellationToken = default)
+    async Task<int> IReadRepository<TRecord>.Count(CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Counting {0}", typeof(TRecord).Name);
+        _logger.LogDebug("Counting {Entity}", Entity);
 
         return await Table.CountAsync(cancellationToken);
     }
 
-    async Task<int> IReadRepository<TRecord, TKey>.Count(IQuerySpecification<TRecord, TKey> specification, CancellationToken cancellationToken = default)
+    async Task<int> IReadRepository<TRecord>.Count(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Counting {0} with spec: {1}", typeof(TRecord).Name, specification.GetType().Name);
+        _logger.LogDebug("Counting {Entity} with spec: {Specification}", Entity, Name(specification));
 
         return await Table.FilterBy(specification).CountAsync(cancellationToken);
     }
 
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find all {0}", typeof(TRecord).Name);
+        _logger.LogDebug("Find all {Entity}", Entity);
 
         return await FindAll().ToListAsync(cancellationToken);
     }
 
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(Action<Orderable<TRecord>> order, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find all {0} with ordering", typeof(TRecord).Name);
+        _logger.LogDebug("Find all {Entity} with ordering", Entity);
 
         return await FindAll().OrderBy(order).ToListAsync(cancellationToken);
     }
 
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find all {0} with ordering, skip:{1}, count:{2}", typeof(TRecord).Name, skip, count);
+        _logger.LogDebug("Find all {Entity} with ordering, skip:{Skip}, count:{Count}", Entity, skip, count);
 
         return await FindAll().OrderBy(order).Skip(skip).Take(count).ToListAsync(cancellationToken);
     }
 
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(IQuerySpecification<TRecord, TKey> specification, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find all {0} with spec:{1}", typeof(TRecord).Name, specification.GetType().Name);
+        _logger.LogDebug("Find all {Entity} with spec:{Specification}", Entity, Name(specification));
 
         return await FindAll(specification).ToListAsync(cancellationToken);
     }
 
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(IFetchStrategy<TRecord, TKey> fetchStrategy, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(IQuerySpecification<TRecord> specification, Action<Orderable<TRecord>> order, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find all {0} with fetch:{1}", typeof(TRecord).Name, fetchStrategy.GetType().Name);
-
-        return await FindAll(fetchStrategy).ToListAsync(cancellationToken);
-    }
-
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(IFetchStrategy<TRecord, TKey> fetchStrategy, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default)
-    {
-        _logger.LogDebug("Find all {0} with fetch:{1} and ordering, skip:{2}, count:{3}", typeof(TRecord).Name, fetchStrategy.GetType().Name, skip, count);
-
-        return await FindAll(fetchStrategy).OrderBy(order).Skip(skip).Take(count).ToListAsync(cancellationToken);
-    }
-
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy, CancellationToken cancellationToken = default)
-    {
-        _logger.LogDebug("Find all {0} with spec:{1}, fetch:{2}", typeof(TRecord).Name, specification.GetType().Name, fetchStrategy.GetType().Name);
-
-        return await FindAll(specification, fetchStrategy).ToListAsync(cancellationToken);
-    }
-
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(IQuerySpecification<TRecord, TKey> specification, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default)
-    {
-        _logger.LogDebug("Find all {0} with spec:{1} and ordering", typeof(TRecord).Name, specification.GetType().Name);
+        _logger.LogDebug("Find all {Entity} with spec:{Specification} and ordering", Entity, Name(specification));
 
         return await FindAll(specification).OrderBy(order).ToListAsync(cancellationToken);
     }
 
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(IQuerySpecification<TRecord, TKey> specification, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(IQuerySpecification<TRecord> specification, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find all {0} with spec:{1} and ordering, skip:{2}, count:{3}", typeof(TRecord).Name, specification.GetType().Name, skip, count);
+        _logger.LogDebug("Find all {Entity} with spec:{Specification} and ordering, skip:{Skip}, count:{Count}", Entity, Name(specification), skip, count);
 
         return await FindAll(specification).OrderBy(order).Skip(skip).Take(count).ToListAsync(cancellationToken);
     }
 
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(IFetchStrategy<TRecord, TKey> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find all {0} with fetch:{1} and ordering", typeof(TRecord).Name, fetchStrategy.GetType().Name);
+        _logger.LogDebug("Find all {Entity} with spec:{Specification}, fetch:{FetchStrategy}", Entity, Name(specification), Name(fetchStrategy));
 
-        return await FindAll(fetchStrategy).OrderBy(order).ToListAsync(cancellationToken);
+        return await FindAll(specification, fetchStrategy).ToListAsync(cancellationToken);
     }
 
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find all {0} with spec:{1}, fetch:{2} and ordering", typeof(TRecord).Name, specification.GetType().Name, fetchStrategy.GetType().Name);
+        _logger.LogDebug("Find all {Entity} with spec:{Specification}, fetch:{FetchStrategy} and ordering", Entity, Name(specification), Name(fetchStrategy));
 
         return await FindAll(specification, fetchStrategy).OrderBy(order).ToListAsync(cancellationToken);
     }
 
-    async Task<IList<TRecord>> IReadRepository<TRecord, TKey>.FindAll(IQuerySpecification<TRecord, TKey> specification, IFetchStrategy<TRecord, TKey> fetchStrategy, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Find all {0} with spec:{1}, fetch:{2} and ordering, skip:{3}, count:{4}", typeof(TRecord).Name, specification.GetType().Name, fetchStrategy.GetType().Name, skip, count);
+        _logger.LogDebug("Find all {Entity} with spec:{Specification}, fetch:{FetchStrategy} and ordering, skip:{Skip}, count:{Count}", Entity, Name(specification), Name(fetchStrategy), skip, count);
 
         return await FindAll(specification, fetchStrategy).OrderBy(order).Skip(skip).Take(count).ToListAsync(cancellationToken);
     }
 
-    async Task IRepository<TRecord, TKey>.Create(TRecord record, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(IFetchStrategy<TRecord> fetchStrategy, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Create new {0}", typeof(TRecord).Name);
+        _logger.LogDebug("Find all {Entity} with fetch:{FetchStrategy}", Entity, Name(fetchStrategy));
 
-        await _context.AddAsync(record, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        return await FindAll(fetchStrategy).ToListAsync(cancellationToken);
     }
 
-    async Task IRepository<TRecord, TKey>.Update(TRecord record, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Update [{0}] record with Id={1}", typeof(TRecord).Name, record.Id);
+        _logger.LogDebug("Find all {Entity} with fetch:{FetchStrategy} and ordering", Entity, Name(fetchStrategy));
 
-        _context.Update(record);
-        await _context.SaveChangesAsync(cancellationToken);
+        return await FindAll(fetchStrategy).OrderBy(order).ToListAsync(cancellationToken);
     }
 
-    async Task IRepository<TRecord, TKey>.Delete(TRecord record, CancellationToken cancellationToken = default)
+    async Task<IList<TRecord>> IReadRepository<TRecord>.FindAll(IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Delete {0}.Id: {1}", typeof(TRecord).Name, record.Id);
+        _logger.LogDebug("Find all {Entity} with fetch:{FetchStrategy} and ordering, skip:{Skip}, count:{Count}", Entity, Name(fetchStrategy), skip, count);
 
-        _context.Remove(record);
-        await _context.SaveChangesAsync(cancellationToken);
+        return await FindAll(fetchStrategy).OrderBy(order).Skip(skip).Take(count).ToListAsync(cancellationToken);
     }
 
-    private IQueryable<TRecord> Load(TKey id)
+    async Task<bool> IReadRepository<TRecord>.Exists(CancellationToken cancellationToken)
     {
-        return Table.Where(x => x.Id!.Equals(id));
+        _logger.LogDebug("Exists {Entity}", Entity);
+
+        return await Table.AnyAsync(cancellationToken);
     }
+
+    async Task<bool> IReadRepository<TRecord>.Exists(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Exists {Entity} with spec: {Specification}", Entity, Name(specification));
+
+        return await Table.FilterBy(specification).AnyAsync(cancellationToken);
+    }
+
+    private static string Name(object? strategy) => strategy?.GetType().Name ?? "null";
 }
