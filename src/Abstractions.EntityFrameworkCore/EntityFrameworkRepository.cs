@@ -29,8 +29,6 @@ public class EntityFrameworkRepository<TRecord> : RepositoryImpl<TRecord>, IRead
     /// </summary>
     protected override IQueryable<TRecord> Table => _context.Set<TRecord>().AsTracking();
 
-    // ---- IReadRepository ----
-
     async Task<TRecord?> IReadRepository<TRecord>.Find(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Find {Entity} by specification: {Specification}", Entity, Name(specification));
@@ -43,6 +41,20 @@ public class EntityFrameworkRepository<TRecord> : RepositoryImpl<TRecord>, IRead
         _logger.LogDebug("Find {Entity} by specification: {Specification} with fetching: {FetchStrategy}", Entity, Name(specification), Name(fetchStrategy));
 
         return await Find(specification, fetchStrategy).SingleOrDefaultAsync(cancellationToken);
+    }
+
+    async Task<TRecord?> IReadRepository<TRecord>.FindFirst(IQuerySpecification<TRecord> specification, Action<Orderable<TRecord>> order, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Find first {Entity} by specification: {Specification} with ordering", Entity, Name(specification));
+
+        return await Find(specification).OrderBy(order).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    async Task<TRecord?> IReadRepository<TRecord>.FindFirst(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Find first {Entity} by specification: {Specification} with fetching: {FetchStrategy} and ordering", Entity, Name(specification), Name(fetchStrategy));
+
+        return await Find(specification, fetchStrategy).OrderBy(order).FirstOrDefaultAsync(cancellationToken);
     }
 
     async Task<int> IReadRepository<TRecord>.Count(CancellationToken cancellationToken)

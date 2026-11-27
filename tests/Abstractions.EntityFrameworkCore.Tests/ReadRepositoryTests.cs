@@ -62,6 +62,34 @@ public class ReadRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task FindFirst_returns_the_first_match_in_order()
+    {
+        var users = TestDb.Repository<User>(_db.NewContext());
+
+        Assert.Equal("bart", (await users.FindFirst(new NameStartsWith("b"), o => o.Asc(u => u.Name)))?.Name);
+        Assert.Equal("bob", (await users.FindFirst(new NameStartsWith("b"), o => o.Desc(u => u.Name)))?.Name);
+    }
+
+    [Fact]
+    public async Task FindFirst_returns_null_when_nothing_matches()
+    {
+        var users = TestDb.Repository<User>(_db.NewContext());
+
+        Assert.Null(await users.FindFirst(new ByName("nobody"), o => o.Asc(u => u.Name)));
+    }
+
+    [Fact]
+    public async Task FindFirst_with_fetch_strategy_loads_related_records()
+    {
+        var users = TestDb.Repository<User>(_db.NewContext());
+
+        var bob = await users.FindFirst(new NameStartsWith("b"), new WithPosts(), o => o.Desc(u => u.Name));
+
+        Assert.Equal("bob", bob?.Name);
+        Assert.Equal(2, bob!.Posts.Count);
+    }
+
+    [Fact]
     public async Task FindAll_returns_everything()
     {
         var users = TestDb.Repository<User>(_db.NewContext());
