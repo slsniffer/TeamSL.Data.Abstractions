@@ -16,6 +16,10 @@ namespace TeamSL.Data.Abstractions.Repository
     {
         Task<TRecord?> Find(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken = default);
         Task<TRecord?> Find(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, CancellationToken cancellationToken = default);
+        /// <summary>Returns the first record that satisfies the specification in the given order, or null. Unlike <c>Find</c>, several matches are fine.</summary>
+        Task<TRecord?> FindFirst(IQuerySpecification<TRecord> specification, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
+        /// <summary>Returns the first record that satisfies the specification in the given order, with related data loaded, or null. Unlike <c>Find</c>, several matches are fine.</summary>
+        Task<TRecord?> FindFirst(IQuerySpecification<TRecord> specification, IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
         Task<int> Count(CancellationToken cancellationToken = default);
         Task<int> Count(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken = default);
         Task<IList<TRecord>> FindAll(CancellationToken cancellationToken = default);
@@ -30,13 +34,9 @@ namespace TeamSL.Data.Abstractions.Repository
         Task<IList<TRecord>> FindAll(IFetchStrategy<TRecord> fetchStrategy, CancellationToken cancellationToken = default);
         Task<IList<TRecord>> FindAll(IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, CancellationToken cancellationToken = default);
         Task<IList<TRecord>> FindAll(IFetchStrategy<TRecord> fetchStrategy, Action<Orderable<TRecord>> order, int skip, int count, CancellationToken cancellationToken = default);
-
         /// <summary>Returns true when at least one record exists.</summary>
-        async Task<bool> Exists(CancellationToken cancellationToken = default)
-            => await Count(cancellationToken).ConfigureAwait(false) > 0;
-
+        Task<bool> Exists(CancellationToken cancellationToken = default);
         /// <summary>Returns true when at least one record satisfies the specification.</summary>
-        async Task<bool> Exists(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken = default)
-            => await Count(specification, cancellationToken).ConfigureAwait(false) > 0;
+        Task<bool> Exists(IQuerySpecification<TRecord> specification, CancellationToken cancellationToken = default);
     }
 }
