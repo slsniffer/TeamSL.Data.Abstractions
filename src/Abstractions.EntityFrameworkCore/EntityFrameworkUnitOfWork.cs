@@ -5,19 +5,21 @@ using TeamSL.Data.Abstractions.Repository;
 namespace TeamSL.Data.Abstractions.EntityFrameworkCore;
 
 /// <summary>
-/// Stages changes on, and saves, the DbContext returned by <see cref="IContextProvider"/>.
-/// Register it with the same lifetime (usually scoped) as the repositories so they share one context.
+/// Stages changes on, and saves, the DbContext(s) returned by <see cref="IContextProvider"/>.
+/// Register it with the same lifetime (usually scoped) as the repositories so they share the contexts.
 /// </summary>
 public sealed class EntityFrameworkUnitOfWork : IUnitOfWork
 {
-    private readonly DbContext _context;
+    private readonly IContextProvider _contextProvider;
+    private readonly IReadOnlyList<DbContext> _contexts;
     private readonly ILogger<EntityFrameworkUnitOfWork> _logger;
 
     public EntityFrameworkUnitOfWork(IContextProvider contextProvider, ILogger<EntityFrameworkUnitOfWork> logger)
     {
         ArgumentNullException.ThrowIfNull(contextProvider);
         ArgumentNullException.ThrowIfNull(logger);
-        _context = contextProvider.Context();
+        _contextProvider = contextProvider;
+        _contexts = contextProvider.Contexts().ToList();
         _logger = logger;
     }
 
@@ -26,7 +28,7 @@ public sealed class EntityFrameworkUnitOfWork : IUnitOfWork
         ArgumentNullException.ThrowIfNull(record);
         _logger.LogDebug("Add new {Entity}", typeof(TRecord).Name);
 
-        _context.Add(record);
+        _contextProvider.Context<TRecord>().Add(record);
     }
 
     public void Update<TRecord>(TRecord record) where TRecord : class
@@ -36,8 +38,9 @@ public sealed class EntityFrameworkUnitOfWork : IUnitOfWork
 
         // Tracked records are left alone: EF detects their changes itself, and Update would mark
         // every property and the whole graph as modified.
-        if (_context.Entry(record).State == EntityState.Detached)
-            _context.Update(record);
+        var context = _contextProvider.Context<TRecord>();
+        if (context.Entry(record).State == EntityState.Detached)
+            context.Update(record);
     }
 
     public void Remove<TRecord>(TRecord record) where TRecord : class
@@ -45,13 +48,17 @@ public sealed class EntityFrameworkUnitOfWork : IUnitOfWork
         ArgumentNullException.ThrowIfNull(record);
         _logger.LogDebug("Remove {Entity}", typeof(TRecord).Name);
 
-        _context.Remove(record);
+        _contextProvider.Context<TRecord>().Remove(record);
     }
 
-    public Task<int> SaveChanges(CancellationToken cancellationToken = default)
+    /// <summary>Saves every context of the scope in turn; each one commits in its own transaction.</summary>
+    public async Task<int> SaveChanges(CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Saving changes");
 
-        return _context.SaveChangesAsync(cancellationToken);
+        var saved = 0;
+        foreach (var context in _contexts)
+            saved += await context.SaveChangesAsync(cancellationToken);
+        return saved;
     }
 }

@@ -22,6 +22,19 @@ builder.Services.AddEfDataRepositories<AppDbContext>();
 `AddEfDataRepositories<TContext>()` registers `IReadRepository<>`, `IUnitOfWork` and an `IContextProvider` for `TContext`, all scoped, so everything in a request shares one DbContext.
 Services you registered yourself beforehand (e.g. a custom `IContextProvider`) are kept.
 
+#### Several DbContexts (e.g. one per schema)
+Call `AddEfDataRepositories` once per context. Each `IReadRepository<T>` uses the context that maps `T`, and `IUnitOfWork` stages each record on its entity's context.
+An entity type must be mapped by exactly one of the registered contexts.
+
+```csharp
+builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(connectionString));       // dbo
+builder.Services.AddDbContext<WarehouseDbContext>(o => o.UseSqlServer(connectionString)); // wdb: HasDefaultSchema("wdb")
+builder.Services.AddEfDataRepositories<AppDbContext>();
+builder.Services.AddEfDataRepositories<WarehouseDbContext>();
+```
+
+`SaveChanges` saves each context in turn, each in its own transaction (not atomic across contexts).
+
 - `IReadRepository<T>` queries. It always tracks the records it returns, so loading a record, changing it and calling `IUnitOfWork.SaveChanges` persists the change.
 - `IUnitOfWork` writes. `Add` / `Update` / `Remove` only stage changes; `SaveChanges` commits everything staged in the scope in one transaction.
   `Update` is only needed for detached records (e.g. built from a DTO).

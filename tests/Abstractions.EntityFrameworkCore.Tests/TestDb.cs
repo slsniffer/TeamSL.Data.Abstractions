@@ -62,9 +62,12 @@ public class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(
     public DbSet<Note> Notes => Set<Note>();
 }
 
-public sealed class ContextProvider(DbContext context) : IContextProvider
+/// <summary>Test double: an <see cref="IContextProvider"/> over one given context, for building repositories without DI.</summary>
+public sealed class TestContextProvider(DbContext context) : IContextProvider
 {
-    public DbContext Context() => context;
+    public DbContext Context<TRecord>() where TRecord : class => context;
+
+    public IEnumerable<DbContext> Contexts() => [context];
 }
 
 public class ByName(string name) : ExpressionQuerySpecification<User>(u => u.Name == name);
@@ -95,10 +98,10 @@ public sealed class TestDb : IDisposable
         => new(new DbContextOptionsBuilder<TestDbContext>().UseSqlite(Connection).UseQueryTrackingBehavior(tracking).Options);
 
     public static IReadRepository<T> Repository<T>(DbContext context) where T : class
-        => new EntityFrameworkRepository<T>(new ContextProvider(context), NullLogger<EntityFrameworkRepository<T>>.Instance);
+        => new EntityFrameworkRepository<T>(new TestContextProvider(context), NullLogger<EntityFrameworkRepository<T>>.Instance);
 
     public static IUnitOfWork UnitOfWork(DbContext context)
-        => new EntityFrameworkUnitOfWork(new ContextProvider(context), NullLogger<EntityFrameworkUnitOfWork>.Instance);
+        => new EntityFrameworkUnitOfWork(new TestContextProvider(context), NullLogger<EntityFrameworkUnitOfWork>.Instance);
 
     public void Seed(params object[] entities)
     {
