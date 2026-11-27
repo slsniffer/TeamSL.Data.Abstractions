@@ -29,7 +29,7 @@ public class ServiceCollectionTests : IDisposable
         Assert.IsType<EntityFrameworkRepository<User>>(scope.ServiceProvider.GetRequiredService<IReadRepository<User>>());
         Assert.IsType<EntityFrameworkRepository<Account>>(scope.ServiceProvider.GetRequiredService<IReadRepository<Account>>());
         Assert.IsType<EntityFrameworkUnitOfWork>(scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
-        Assert.Same(scope.ServiceProvider.GetRequiredService<TestDbContext>(), scope.ServiceProvider.GetRequiredService<IContextProvider>().Context());
+        Assert.Same(scope.ServiceProvider.GetRequiredService<TestDbContext>(), scope.ServiceProvider.GetRequiredService<IContextProvider>().Context<User>());
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public class ServiceCollectionTests : IDisposable
         using var second = provider.CreateScope();
 
         Assert.NotSame(
-            first.ServiceProvider.GetRequiredService<IContextProvider>().Context(),
-            second.ServiceProvider.GetRequiredService<IContextProvider>().Context());
+            first.ServiceProvider.GetRequiredService<IContextProvider>().Context<User>(),
+            second.ServiceProvider.GetRequiredService<IContextProvider>().Context<User>());
     }
 
     [Fact]
@@ -63,10 +63,10 @@ public class ServiceCollectionTests : IDisposable
     [Fact]
     public void Keeps_a_context_provider_registered_beforehand()
     {
-        using var provider = BuildProvider(s => s.AddScoped<IContextProvider>(p => new ContextProvider(p.GetRequiredService<TestDbContext>())));
+        using var provider = BuildProvider(s => s.AddScoped<IContextProvider>(p => new TestContextProvider(p.GetRequiredService<TestDbContext>())));
         using var scope = provider.CreateScope();
 
-        Assert.IsType<ContextProvider>(scope.ServiceProvider.GetRequiredService<IContextProvider>());
+        Assert.IsType<TestContextProvider>(scope.ServiceProvider.GetRequiredService<IContextProvider>());
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class ServiceCollectionTests : IDisposable
     {
         var services = new ServiceCollection().AddEfDataRepositories<TestDbContext>().AddEfDataRepositories<TestDbContext>();
 
-        Assert.Equal(3, services.Count);
+        Assert.Equal(4, services.Count); // registered context, context provider, repository, unit of work
     }
 
     [Fact]

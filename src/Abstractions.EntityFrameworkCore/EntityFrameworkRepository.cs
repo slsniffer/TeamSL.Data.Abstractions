@@ -19,7 +19,7 @@ public class EntityFrameworkRepository<TRecord> : RepositoryImpl<TRecord>, IRead
     {
         ArgumentNullException.ThrowIfNull(contextProvider);
         ArgumentNullException.ThrowIfNull(logger);
-        _context = contextProvider.Context();
+        _context = contextProvider.Context<TRecord>();
         _logger = logger;
     }
 
